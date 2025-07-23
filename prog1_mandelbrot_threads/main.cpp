@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <algorithm>
 #include <getopt.h>
+#include <thread>
 
 #include "CycleTimer.h"
 
@@ -68,10 +69,15 @@ bool verifyResult (int *gold, int *result, int width, int height) {
 
 int main(int argc, char** argv) {
 
+    static constexpr int NUM_LOOPS = 1;
+
     const unsigned int width = 1600;
     const unsigned int height = 1200;
     const int maxIterations = 256;
-    int numThreads = 2;
+
+    int numThreads = std::thread::hardware_concurrency();
+    if (numThreads == 0) numThreads = 2;
+    printf("Logical processors: %d\n", numThreads);
 
     float x0 = -2;
     float x1 = 1;
@@ -128,7 +134,7 @@ int main(int argc, char** argv) {
     //
 
     double minSerial = 1e30;
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < NUM_LOOPS; ++i) {
        memset(output_serial, 0, width * height * sizeof(int));
         double startTime = CycleTimer::currentSeconds();
         mandelbrotSerial(x0, y0, x1, y1, width, height, 0, height, maxIterations, output_serial);
@@ -144,7 +150,7 @@ int main(int argc, char** argv) {
     //
 
     double minThread = 1e30;
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < NUM_LOOPS; ++i) {
       memset(output_thread, 0, width * height * sizeof(int));
         double startTime = CycleTimer::currentSeconds();
         mandelbrotThread(numThreads, x0, y0, x1, y1, width, height, maxIterations, output_thread);
