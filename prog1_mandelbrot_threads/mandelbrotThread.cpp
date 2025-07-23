@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <thread>
+#include <algorithm>
 
 #include "CycleTimer.h"
 #include <cmath>
@@ -40,7 +41,7 @@ void workerThreadStart(WorkerArgs * const args) {
 
     int totalRows = rowsPerThread + (args->threadId < remainder ? 1 : 0);
 
-    int startRow_thread = rowsPerThread*args->threadId;
+    int startRow_thread = rowsPerThread * args->threadId + std::min(args->threadId, remainder);
 
     mandelbrotSerial(
         args->x0, args->y0,
