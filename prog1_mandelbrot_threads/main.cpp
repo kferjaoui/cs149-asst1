@@ -12,7 +12,14 @@ extern void mandelbrotSerial(
     int maxIterations,
     int output[]);
 
+struct WorkerArgs;
+using WorkerFn = void (*)(WorkerArgs *);
+
+extern void workerThreadStart_striped(WorkerArgs * const a);   // contiguous stripes
+extern void workerThreadStart_cyclic (WorkerArgs * const a);   // round‑robin rows
+
 extern void mandelbrotThread(
+    WorkerFn  workerThreadStart,
     int numThreads,
     float x0, float y0, float x1, float y1,
     int width, int height,
@@ -69,7 +76,7 @@ bool verifyResult (int *gold, int *result, int width, int height) {
 
 int main(int argc, char** argv) {
 
-    static constexpr int NUM_LOOPS = 1;
+    static constexpr int NUM_LOOPS = 10;
 
     const unsigned int width = 1600;
     const unsigned int height = 1200;
@@ -126,7 +133,8 @@ int main(int argc, char** argv) {
 
 
     int* output_serial = new int[width*height];
-    int* output_thread = new int[width*height];
+    int* output_thread_striped = new int[width*height];
+    int* output_thread_cyclic = new int[width*height];
     
     //
     // Run the serial implementation.  Run the code three times and
@@ -148,33 +156,53 @@ int main(int argc, char** argv) {
     //
     // Run the threaded version
     //
-
+    //------------------------
+    // Option 1: Striped version
+    //------------------------
     double minThread = 1e30;
     for (int i = 0; i < NUM_LOOPS; ++i) {
-      memset(output_thread, 0, width * height * sizeof(int));
+        memset(output_thread_striped, 0, width * height * sizeof(int));
         double startTime = CycleTimer::currentSeconds();
-        mandelbrotThread(numThreads, x0, y0, x1, y1, width, height, maxIterations, output_thread);
+        mandelbrotThread(workerThreadStart_striped, numThreads, x0, y0, x1, y1, width, height, maxIterations, output_thread_striped);
         double endTime = CycleTimer::currentSeconds();
         minThread = std::min(minThread, endTime - startTime);
     }
-
+    
     printf("[mandelbrot thread]:\t\t[%.3f] ms\n", minThread * 1000);
-    writePPMImage(output_thread, width, height, "mandelbrot-thread.ppm", maxIterations);
+    writePPMImage(output_thread_striped, width, height, "mandelbrot-thread-striped.ppm", maxIterations);
 
-    if (! verifyResult (output_serial, output_thread, width, height)) {
+    //------------------------
+    // Option 2: Cyclic version
+    //------------------------
+    double minThread_c = 1e30;
+    for (int i = 0; i < NUM_LOOPS; ++i) {
+      memset(output_thread_cyclic, 0, width * height * sizeof(int));
+        double startTime = CycleTimer::currentSeconds();
+        mandelbrotThread(workerThreadStart_cyclic, numThreads, x0, y0, x1, y1, width, height, maxIterations, output_thread_cyclic);
+        double endTime = CycleTimer::currentSeconds();
+        minThread_c = std::min(minThread_c, endTime - startTime);
+    }
+
+    printf("[mandelbrot thread cyclic]:\t\t[%.3f] ms\n", minThread_c * 1000);
+    writePPMImage(output_thread_cyclic, width, height, "mandelbrot-thread-cyclic.ppm", maxIterations);
+
+    if (!verifyResult(output_serial, output_thread_cyclic, width, height) || !verifyResult(output_serial, output_thread_striped, width, height)) {
         printf ("Error : Output from threads does not match serial output\n");
 
         delete[] output_serial;
-        delete[] output_thread;
+        delete[] output_thread_striped;
+        delete[] output_thread_cyclic;
 
         return 1;
     }
 
     // compute speedup
-    printf("\t\t\t\t(%.2fx speedup from %d threads)\n", minSerial/minThread, numThreads);
+    printf("\t\t\t\t(%.2fx speedup from %d threads [striped])\n", minSerial/minThread, numThreads);
+    printf("\t\t\t\t(%.2fx speedup from %d threads [cyclic])\n", minSerial/minThread_c, numThreads);
 
     delete[] output_serial;
-    delete[] output_thread;
+    delete[] output_thread_striped;
+    delete[] output_thread_cyclic;
 
     return 0;
 }
