@@ -248,41 +248,41 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   //
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
-  //
+
   __cs149_vec_float x;
   __cs149_vec_int p;
   __cs149_vec_int zero = _cs149_vset_int(0);
   __cs149_vec_int ones =_cs149_vset_int(1);
   __cs149_vec_float limit = _cs149_vset_float(9.999999f);
-  __cs149_vec_float result =_cs149_vset_float(1.f);
-  __cs149_mask maskAll, allNULL, expIsNULL, expIsNotNULL, maskExceedsLimit;
+  __cs149_mask maskAll, expIsNULL, expIsNotNULL, maskExceedsLimit;
+  
+  for (int i=0; i<N; i += VECTOR_WIDTH){
+    // Initialize with all ones (for case where exponent is NULL)
+    __cs149_vec_float result =_cs149_vset_float(1.f);
 
-  for (int i; i<N; i += VECTOR_WIDTH){
     // All ones
     maskAll = _cs149_init_ones();
 
     // Load the row in register
     _cs149_vload_float(x, values+i, maskAll);
 
+    // Load the exponents
+    _cs149_vload_int(p, exponents+i, maskAll);
+    
     // All zeros
     expIsNULL = _cs149_init_ones(0);
-    allNULL = _cs149_init_ones(0);
-
-    // Load the exponents
-    _cs149_vload_int(p, exponents+i, expIsNotNULL);
 
     // Only non zero exponents are masked as 1
     _cs149_veq_int(expIsNULL, p, zero, maskAll); // if exponent = 0
-
     expIsNotNULL = _cs149_mask_not(expIsNULL); 
 
     _cs149_vmult_float(result, result, x, expIsNotNULL);
 
-    // Decrement the exponenetial vector
+    // Decrement the exponential vector
     _cs149_vsub_int(p, p, ones, expIsNotNULL);
 
     // Update mask of non null exponents
-    _cs149_vlt_int(expIsNotNULL, p, ones, maskAll);
+    _cs149_vgt_int(expIsNotNULL, p, zero, expIsNotNULL);
 
     while (_cs149_cntbits(expIsNotNULL) > 0){
       // Multiply by itself
@@ -290,9 +290,10 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
       // Decrement the exponenetial vector
       _cs149_vsub_int(p, p, ones, expIsNotNULL);
       // Update mask of non null exponents
-      _cs149_vlt_int(expIsNotNULL, p, ones, allNULL);
+      _cs149_vgt_int(expIsNotNULL, p, zero, expIsNotNULL);
     }
 
+    // All zeros
     maskExceedsLimit = _cs149_init_ones(0);
     _cs149_vgt_float(maskExceedsLimit, result, limit, maskAll);
     _cs149_vmove_float(result, limit, maskExceedsLimit);
