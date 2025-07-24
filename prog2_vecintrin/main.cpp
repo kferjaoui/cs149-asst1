@@ -255,13 +255,20 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   __cs149_vec_int ones =_cs149_vset_int(1);
   __cs149_vec_float limit = _cs149_vset_float(9.999999f);
   __cs149_mask maskAll, expIsNULL, expIsNotNULL, maskExceedsLimit;
+
+  int remainder = N%VECTOR_WIDTH;
   
   for (int i=0; i<N; i += VECTOR_WIDTH){
     // Initialize with all ones (for case where exponent is NULL)
     __cs149_vec_float result =_cs149_vset_float(1.f);
 
-    // All ones
-    maskAll = _cs149_init_ones();
+    // Account for the case when N%VECTOR_WIDTH != 0
+    if ((i+VECTOR_WIDTH)>N){
+      maskAll = _cs149_init_ones(remainder);
+    } else {
+      // All ones
+      maskAll = _cs149_init_ones();
+    }
 
     // Load the row in register
     _cs149_vload_float(x, values+i, maskAll);
