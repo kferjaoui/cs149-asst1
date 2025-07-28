@@ -61,6 +61,39 @@ task void mandelbrot_ispc_task(uniform float x0, uniform float y0,
     }
 }
 
+task void mandelbrot_ispc_task_2(uniform float x0, uniform float y0, 
+                               uniform float x1, uniform float y1,
+                               uniform int width, uniform int height,
+                               uniform int rowsPerTask,
+                               uniform int maxIterations,
+                               uniform int output[])
+{
+
+    // taskIndex is an ISPC built-in
+    
+    uniform int ystart = taskIndex * rowsPerTask;
+    uniform int yend = ystart + rowsPerTask;
+    
+    uniform float dx = (x1 - x0) / width;
+    uniform float dy = (y1 - y0) / height;
+    
+    for (uniform int j = ystart; j < yend; ++j) {
+        // compute once per row (uniform)
+        uniform float  c_im    = y0 + j * dy;
+        uniform int    rowBase = j * width;
+
+        // now vectorize only over i
+        foreach (i = 0 ... width) {
+            // c_re varies per lane, c_im is uniform and broadcast
+            float c_re = x0 + i * dx;
+
+            // now a single add instead of a mul per lane
+            int index = rowBase + i;
+            output[index] = mandel(c_re, c_im, maxIterations);
+        }
+    }
+}
+
 export void mandelbrot_ispc_withtasks(uniform float x0, uniform float y0,
                                       uniform float x1, uniform float y1,
                                       uniform int width, uniform int height,
@@ -70,7 +103,7 @@ export void mandelbrot_ispc_withtasks(uniform float x0, uniform float y0,
 
     uniform int rowsPerTask = height / 2;
 
-    // create 2 tasks
+    // create N tasks
     launch[2] mandelbrot_ispc_task(x0, y0, x1, y1,
                                      width, height,
                                      rowsPerTask,
