@@ -34,7 +34,17 @@ int main() {
         // to you generate best and worse-case speedups
         
         // starter code populates array with random input values
-        values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+        // values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+        
+        // Initial guess equal values
+        // values[i] = initialGuess;
+
+        // Only one element demands long compute
+        if (i==(N-1)){
+            values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+        } else {
+            values[i] = initialGuess;
+        }
     }
 
     // generate a gold version to check results
@@ -46,7 +56,7 @@ int main() {
     // minimum time.
     //
     double minSerial = 1e30;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 30; ++i) {
         double startTime = CycleTimer::currentSeconds();
         sqrtSerial(N, initialGuess, values, output);
         double endTime = CycleTimer::currentSeconds();
@@ -62,7 +72,7 @@ int main() {
     // time of three runs.
     //
     double minISPC = 1e30;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 30; ++i) {
         double startTime = CycleTimer::currentSeconds();
         sqrt_ispc(N, initialGuess, values, output);
         double endTime = CycleTimer::currentSeconds();
@@ -81,7 +91,7 @@ int main() {
     // Tasking version of the ISPC code
     //
     double minTaskISPC = 1e30;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 30; ++i) {
         double startTime = CycleTimer::currentSeconds();
         sqrt_ispc_withtasks(N, initialGuess, values, output);
         double endTime = CycleTimer::currentSeconds();
