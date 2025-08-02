@@ -1,12 +1,23 @@
 
 export void saxpy_ispc(uniform int N,
                        uniform float scale,
-                            uniform float X[],
-                            uniform float Y[],
-                            uniform float result[])
+                       uniform float X[],
+                       uniform float Y[],
+                       uniform float result[])
 {
     foreach (i = 0 ... N) {           
         result[i] = scale * X[i] + Y[i];
+    }
+}
+
+export void saxpy_ispc_explicit(uniform int N,
+                                uniform float scale,
+                                uniform float X[],
+                                uniform float Y[],
+                                uniform float result[])
+{
+    for (uniform int idx = 0; idx < N; idx+=programCount){           
+        result[idx+programIndex] = scale * X[idx+programIndex] + Y[idx+programIndex];
     }
 }
 

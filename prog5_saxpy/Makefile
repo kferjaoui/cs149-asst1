@@ -1,5 +1,6 @@
 CXX=g++ -m64
-CXXFLAGS=-I../common -Iobjs/ -O2 -Wall 
+# CXXFLAGS=-I../common -Iobjs/ -O2 -Wall 
+CXXFLAGS=-I../common -Iobjs/ -O3 -Wall -mavx2 -mfma
 
 # where your libispc_rt.so (or .a) lives:
 ISPC_LIBDIR = /home/kferjaoui/ispc-v1.24.0-linux/lib64
@@ -27,7 +28,7 @@ dirs:
 clean:
 		/bin/rm -rf $(OBJDIR) *.ppm *~ $(APP_NAME)
 
-OBJS=$(OBJDIR)/main.o $(OBJDIR)/saxpySerial.o $(OBJDIR)/saxpy_ispc.o $(TASKSYS_OBJ)
+OBJS=$(OBJDIR)/main.o $(OBJDIR)/saxpySerial.o $(OBJDIR)/saxpyAVX2.o $(OBJDIR)/saxpy_ispc.o $(TASKSYS_OBJ)
 
 $(APP_NAME): dirs $(OBJS)
 		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) -L $(ISPC_LIBDIR) $(ISPC_LIBS) -lm $(TASKSYS_LIB)
